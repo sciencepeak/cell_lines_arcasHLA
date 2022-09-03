@@ -1,0 +1,6 @@
+{
+    "final_workflow_outputs_dir": "/media/hugolab/DataRAID1/projects2/workflows/cell_lines/arcasHLA/result_directory",
+    "use_relative_output_paths": true,
+    "write_to_cache": false,
+    "read_from_cache": false
+}

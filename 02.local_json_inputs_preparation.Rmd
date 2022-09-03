@@ -1,0 +1,139 @@
+---
+title: "A good title to conceive"
+author: "Author: A good author to seek"
+date: "`r format(Sys.time(), '%F')`"
+output:
+    rmarkdown::html_document:
+        theme: readable
+        highlight: textmate
+        df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+rm(list = ls())
+ptm <- proc.time()
+# proc.time() - ptm
+options(stringsAsFactors = F)
+library("magrittr")
+library("jsonlite")
+```
+
+# Settings
+
+```{r}
+sub_folder_number <- 14
+program_name <- "arcasHLA"
+
+hisat_index_path_file <- "/media/hugolab/DataRAID1/projects/annotations/hisat2/grch38_snp_tran/genome_index.txt"
+allocated_thread_number <- 12
+```
+
+# input and output
+
+```{r}
+local_program_directory <- file.path(getwd(), "output_directory", "local_directory", program_name) %T>%
+    dir.create(., showWarnings = F, recursive = T)
+
+unlink(file.path(local_program_directory, "*"), recursive = T)
+
+all_inclusive_table_path <- file.path(getwd(), "output_directory", "entity_samples_table.tsv")
+
+input_json_boilerplate_path <- file.path(
+    getwd(),
+    "shell_and_wdl_setting_files",
+    "local_inputs_template.json"
+) 
+
+output_json_directory <- file.path(local_program_directory, "local_json_inputs_directory") %T>%
+    dir.create(., showWarnings = F, recursive = T)
+
+output_json_by_folder_directory <- file.path(output_json_directory, "by_folder") %T>%
+    dir.create(., showWarnings = F, recursive = T)
+output_json_by_file_directory <- file.path(output_json_directory, "by_file") %T>%
+    dir.create(., showWarnings = F, recursive = T)
+```
+
+```{r}
+all_inclusive_dataframe <- read.delim(all_inclusive_table_path)
+all_inclusive_dataframe
+```
+
+# Generate the lists for wdl inputs json files from the template
+
+```{r}
+raw_boilerplate_list <- fromJSON(input_json_boilerplate_path)
+raw_boilerplate_list
+```
+
+```{r}
+accumulation_list <- list()
+
+for (i in seq_len(nrow(all_inclusive_dataframe))) {
+    
+    current_sample_name <- all_inclusive_dataframe[i, "base_file_name"]
+    
+    new_boilerplate_list <- raw_boilerplate_list
+    
+    new_boilerplate_list$MyBestWorkflow.base_file_name <- all_inclusive_dataframe[i, "base_file_name"]
+    
+    new_boilerplate_list$MyBestWorkflow.single_endness <- NULL
+    new_boilerplate_list$MyBestWorkflow.strandness <- NULL
+    
+    new_boilerplate_list$MyBestWorkflow.hisat_index_path_file <- hisat_index_path_file
+
+    new_boilerplate_list$MyBestWorkflow.thread_number <- allocated_thread_number
+    
+    new_boilerplate_list$MyBestWorkflow.fastq_r1 <- all_inclusive_dataframe[i, "local_fastq_r1"]
+    new_boilerplate_list$MyBestWorkflow.fastq_r2 <- all_inclusive_dataframe[i, "local_fastq_r2"]
+
+    accumulation_list[[current_sample_name]] <- new_boilerplate_list
+}
+```
+
+# how many sub-directory do you want to split the samples into.
+
+```{r}
+# sub_folder_number <- 10
+sample_number_per_sub_folder <- ceiling(length(accumulation_list) / sub_folder_number)
+
+split_folder_names <- paste("input_folder_",
+                          formatC(seq_len(sub_folder_number), width = 2, flag = "0"),
+                          sep = "")
+
+split_reference_vector <- rep(1:sub_folder_number, each = sample_number_per_sub_folder) %>%
+    head(., n = length(accumulation_list))
+
+
+split_list <- split(accumulation_list, list(split_reference_vector))
+names(split_list) <- head(split_folder_names, n = length(split_list))
+
+for (present_folder_name in names(split_list)) {
+    # print(present_folder_name)
+    present_json_parental_path <- file.path(output_json_by_folder_directory, present_folder_name) %T>%
+        dir.create(., showWarnings = F, recursive = T)
+    for (present_sample_name in names(split_list[[present_folder_name]])) {
+        # print(present_sample_name)
+        present_json_object <- split_list[[present_folder_name]][[present_sample_name]] %>%
+            toJSON(., auto_unbox = T, pretty = 4)
+        present_output_file <- paste(present_sample_name, "inputs", "json", sep = ".")
+        cat(present_json_object, file = file.path(present_json_parental_path, present_output_file))
+    }
+}
+```
+
+# Write the json files to one folder.
+
+```{r}
+for (i in seq_along(accumulation_list)) {
+    present_json_object <- toJSON(accumulation_list[[i]], auto_unbox = T, pretty = 4)
+    present_sample_name <- names(accumulation_list)[i]
+    present_output_file <- paste(present_sample_name, "inputs", "json", sep = ".")
+    cat(present_json_object, file = file.path(output_json_by_file_directory, present_output_file))
+}
+```
+
+
+```{r}
+proc.time() - ptm
+```
+

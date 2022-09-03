@@ -1,0 +1,120 @@
+---
+title: "A good title to conceive"
+author: "Author: A good author to seek"
+date: "`r format(Sys.time(), '%F')`"
+output:
+    rmarkdown::html_document:
+        theme: readable
+        highlight: textmate
+        df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE}
+rm(list = ls())
+ptm <- proc.time()
+# proc.time() - ptm
+options(stringsAsFactors = F)
+
+
+# tidyverse tools
+library("tidyverse")
+tidyverse_packages()
+library("magrittr")
+```
+
+```{r}
+input_directory <- file.path(getwd(), "input_directory")
+batch_01_file_path <- file.path(input_directory, "batch_01_files.txt")
+batch_02_file_path <- file.path(input_directory, "batch_02_files.txt")
+grouping_table_path <- file.path(input_directory, "samples_cell_lines_batch_both_SampleGroup.xlsx")
+output_file_path <- file.path(getwd(), "output_directory", "entity_samples_table.tsv")
+```
+
+
+```{r}
+# List all files
+batch_01_files <- readLines(batch_01_file_path)
+batch_02_files <- readLines(batch_02_file_path)
+
+# Subset the fastq.gz files.
+batch_01_fastq_files <- subset(batch_01_files, grepl("fastq.gz", batch_01_files))
+batch_02_fastq_files <- subset(batch_02_files, grepl("fastq.gz", batch_02_files))
+
+# Read the grouping information into R workspace
+grouping_dataframe <- readxl::read_excel(grouping_table_path) %>%
+    as.data.frame %>%
+    inset(., "Batch", value = paste("batch", .$Batch, sep = "_"))
+    
+
+# Ensure there is no duplicates of sample names in the two batches.
+batch_01_fastq_files %in% batch_02_fastq_files
+batch_02_fastq_files %in% batch_01_fastq_files
+
+# Combine the two batches of fastq file paths
+fastq_file_paths <- c(
+  file.path("/media/hugolab/DataRAID1/projects2/samples/cell_lines/cell_lines_batch_01", batch_01_fastq_files),
+  file.path("/media/hugolab/DataRAID1/projects2/samples/cell_lines/cell_lines_batch_02", batch_02_fastq_files)
+)
+
+# Extract sample names from the fastq file paths.
+# The sample names now have duplicates.
+sample_names <- fastq_file_paths %>%
+    basename %>%
+    str_split(., pattern = "_", simplify = T) %>%
+    .[, 1, drop = T]
+
+# Ensure annotation grouping table's sample names comply with the sample names extracted from fastq files.
+grouping_dataframe[, 1] %in% unique(sample_names)
+
+# Group the fastq file paths (google cloud bucket url) based on their sample names
+# So we have address for all the r1 fastq files and r2 fastq files for each sample name.
+r1_r2_fastq_paths <- tapply(fastq_file_paths,
+                            INDEX = sample_names,
+                            function(x) paste(x, collapse = ";"))
+
+
+separate_R1R2_fastq_path <- function(path_mixture_string) {
+    
+    mixed_dataframe <- path_mixture_string %>%
+        str_split(., pattern = ";", simplify = T)
+    
+    upper_limit <- ncol(mixed_dataframe)
+    
+    odd_index <- seq(from = 1, to = upper_limit, by = 2)
+    even_index <- seq(from = 2, to = upper_limit, by = 2)
+    
+    odd_paths <- mixed_dataframe[1, odd_index]
+    even_paths <- mixed_dataframe[1, even_index]
+    
+    combined_odd_path <- paste(odd_paths, collapse = ";")
+    combined_even_path <- paste(even_paths, collapse = ";")
+    
+    R1R2_path_vector <- c(combined_odd_path, combined_even_path)
+    names(R1R2_path_vector) <- c("local_fastq_r1", "local_fastq_r2")
+    
+    return(R1R2_path_vector)
+}
+
+# Concatenate the fastq file paths into R1 and R2.
+sample_path_dataframe <- sapply(r1_r2_fastq_paths, separate_R1R2_fastq_path) %>%
+    t %>%
+    as.data.frame %>%
+    rownames_to_column(., "base_file_name")
+
+# Merge the sample and paths with annotation of grouping information and batch information.
+all_metadata_dataframe <- merge(sample_path_dataframe, grouping_dataframe, by.x = "base_file_name", by.y = "File", all.x = T) %>%
+    unite(., col = "entity:sample_id", c("Batch", "Group", "base_file_name"), sep = ".", remove = F) %$%
+    .[order(Batch, base_file_name, Group), ] %>%
+    .[, 1:4]
+
+# Write out entity table to the hard disk.
+write.table(all_metadata_dataframe,
+            file = output_file_path,
+            quote = F, sep = "\t", row.names = F)
+```
+
+
+```{r}
+proc.time() - ptm
+```
+

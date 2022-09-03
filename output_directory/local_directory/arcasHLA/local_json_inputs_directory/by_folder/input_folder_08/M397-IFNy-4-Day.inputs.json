@@ -1,0 +1,7 @@
+{
+    "MyBestWorkflow.hisat_index_path_file": "/media/hugolab/DataRAID1/projects/annotations/hisat2/grch38_snp_tran/genome_index.txt",
+    "MyBestWorkflow.base_file_name": "M397-IFNy-4-Day",
+    "MyBestWorkflow.thread_number": 12,
+    "MyBestWorkflow.fastq_r2": "/media/hugolab/DataRAID1/projects2/samples/cell_lines/cell_lines_batch_02/M397-IFNy-4-Day_S18_R2_001.fastq.gz",
+    "MyBestWorkflow.fastq_r1": "/media/hugolab/DataRAID1/projects2/samples/cell_lines/cell_lines_batch_02/M397-IFNy-4-Day_S18_R1_001.fastq.gz"
+}

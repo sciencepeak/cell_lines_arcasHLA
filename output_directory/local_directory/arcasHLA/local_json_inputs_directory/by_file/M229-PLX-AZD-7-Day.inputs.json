@@ -1,0 +1,7 @@
+{
+    "MyBestWorkflow.hisat_index_path_file": "/media/hugolab/DataRAID1/projects/annotations/hisat2/grch38_snp_tran/genome_index.txt",
+    "MyBestWorkflow.base_file_name": "M229-PLX-AZD-7-Day",
+    "MyBestWorkflow.thread_number": 12,
+    "MyBestWorkflow.fastq_r2": "/media/hugolab/DataRAID1/projects2/samples/cell_lines/cell_lines_batch_01/M229-PLX-AZD-7-Day_S40_L003_R2_001.fastq.gz",
+    "MyBestWorkflow.fastq_r1": "/media/hugolab/DataRAID1/projects2/samples/cell_lines/cell_lines_batch_01/M229-PLX-AZD-7-Day_S40_L003_R1_001.fastq.gz"
+}

@@ -1,0 +1,10 @@
+{
+  "MyBestWorkflow.hisat_index_path_file": "File",
+  "MyBestWorkflow.strandness": "String? (optional)",
+  "MyBestWorkflow.base_file_name": "String",
+  "MyBestWorkflow.thread_number": "Int",
+  "MyBestWorkflow.single_endness": "Boolean? (optional)",
+  "MyBestWorkflow.fastq_r2": "File? (optional)",
+  "MyBestWorkflow.fastq_r1": "File"
+}
+

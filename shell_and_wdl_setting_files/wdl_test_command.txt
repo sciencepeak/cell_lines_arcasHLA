@@ -1,0 +1,3 @@
+sudo chmod 666 /var/run/docker.sock
+java -jar $WOMTOOL validate arcasHLA.from_fastq.local.wdl
+java -jar $WOMTOOL inputs arcasHLA.from_fastq.local.wdl > local_inputs_template.json
