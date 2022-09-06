@@ -35,7 +35,7 @@ workflow MyBestWorkflow {
             thread_number = thread_number
     }
 
-    call SamOrBamToQuerynameSortedBam {
+    call SamOrBamToCoordinateSortedBam {
         input:
             sample_name = base_file_name,
             input_sam_or_bam = Hisat2FastqToSam.initially_mapped_sam,
@@ -45,7 +45,7 @@ workflow MyBestWorkflow {
     call PicardRemoveDuplicates {
         input:
             sample_name = base_file_name,
-            input_bam = SamOrBamToQuerynameSortedBam.queryname_sorted_bam
+            input_bam = SamOrBamToCoordinateSortedBam.coordinate_sorted_bam
     }
 
 
@@ -137,7 +137,7 @@ task Hisat2FastqToSam {
     }
 }
 
-task SamOrBamToQuerynameSortedBam {
+task SamOrBamToCoordinateSortedBam {
     input {
         String sample_name
         File input_sam_or_bam
@@ -145,11 +145,11 @@ task SamOrBamToQuerynameSortedBam {
     }
 
     command {
-        /usr/local/bin/samtools sort -@ ${thread_number} -l 9 -n -o ${sample_name}.queryname_sorted.bam ${input_sam_or_bam}
+        /usr/local/bin/samtools sort -@ ${thread_number} -l 9 -o ${sample_name}.coordinate_sorted.bam ${input_sam_or_bam}
     }
 
     output {
-        File queryname_sorted_bam = "${sample_name}.queryname_sorted.bam"
+        File coordinate_sorted_bam = "${sample_name}.coordinate_sorted.bam"
     }
 
     runtime {
@@ -167,7 +167,7 @@ task PicardRemoveDuplicates {
     }
 
     command {
-        java -Xmx16g -jar /usr/picard/picard.jar MarkDuplicates I=${input_bam} O=${sample_name}.duplicates_removed.bam ASSUME_SORT_ORDER=queryname METRICS_FILE=${sample_name}.duplicates_metrics.txt QUIET=true COMPRESSION_LEVEL=9 VALIDATION_STRINGENCY=LENIENT REMOVE_DUPLICATES=true
+        java -Xmx16g -jar /usr/picard/picard.jar MarkDuplicates I=${input_bam} O=${sample_name}.duplicates_removed.bam ASSUME_SORT_ORDER=coordinate METRICS_FILE=${sample_name}.duplicates_metrics.txt QUIET=true COMPRESSION_LEVEL=9 VALIDATION_STRINGENCY=LENIENT REMOVE_DUPLICATES=true
     }
 
     output {
